@@ -51,6 +51,7 @@ def main(args=None):
         type=int,
         default=50,
     )
+    parser.add_argument("--batch_size", help="Batch size", type=int, default=2)
     parser.add_argument("--epochs", help="Number of epochs", type=int, default=100)
     parser.add_argument(
         "--workers", help="Number of workers of dataleader", type=int, default=4
@@ -103,7 +104,7 @@ def main(args=None):
     else:
         raise ValueError("Dataset type not understood (must be csv or coco), exiting.")
 
-    sampler = AspectRatioBasedSampler(dataset_train, batch_size=2, drop_last=False)
+    sampler = AspectRatioBasedSampler(dataset_train, batch_size=parser.batch_size, drop_last=False)
     dataloader_train = DataLoader(
         dataset_train,
         num_workers=parser.workers,
@@ -200,25 +201,26 @@ def main(args=None):
 
                 epoch_loss.append(float(loss))
 
-                print(
-                    "Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}".format(
-                        epoch_num,
-                        iter_num,
-                        float(classification_loss),
-                        float(regression_loss),
-                        np.mean(loss_hist),
+                if iter_num % 10 == 0:
+                    print(
+                        "Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}".format(
+                            epoch_num,
+                            iter_num,
+                            float(classification_loss),
+                            float(regression_loss),
+                            np.mean(loss_hist),
+                        )
                     )
-                )
 
-                writer.add_scalars(
-                    "training",
-                    {
-                        "loss": loss,
-                        "loss_cls": classification_loss,
-                        "loss_reg": regression_loss,
-                    },
-                    global_step,
-                )
+                    writer.add_scalars(
+                        "training",
+                        {
+                            "loss": loss,
+                            "loss_cls": classification_loss,
+                            "loss_reg": regression_loss,
+                        },
+                        global_step,
+                    )
 
                 del classification_loss
                 del regression_loss
