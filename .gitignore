@@ -101,6 +101,7 @@ ENV/
 
 *.zip
 *.pt
+*.pth
 
 data
 logs
