@@ -104,7 +104,9 @@ def main(args=None):
     else:
         raise ValueError("Dataset type not understood (must be csv or coco), exiting.")
 
-    sampler = AspectRatioBasedSampler(dataset_train, batch_size=parser.batch_size, drop_last=False)
+    sampler = AspectRatioBasedSampler(
+        dataset_train, batch_size=parser.batch_size, drop_last=False
+    )
     dataloader_train = DataLoader(
         dataset_train,
         num_workers=parser.workers,
@@ -117,7 +119,7 @@ def main(args=None):
             dataset_val, batch_size=1, drop_last=False
         )
         dataloader_val = DataLoader(
-            dataset_val, num_workers=3, collate_fn=collater, batch_sampler=sampler_val
+            dataset_val, num_workers=parser.workers, collate_fn=collater, batch_sampler=sampler_val
         )
 
     # Create the model
@@ -156,7 +158,7 @@ def main(args=None):
     optimizer = optim.Adam(retinanet.parameters(), lr=1e-5)
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=3, verbose=True
+        optimizer, patience=10, verbose=True
     )
 
     loss_hist = collections.deque(maxlen=500)
@@ -166,6 +168,7 @@ def main(args=None):
 
     print("Num training images: {}".format(len(dataset_train)))
 
+    global_step = 0
     for epoch_num in range(parser.epochs):
 
         retinanet.train()
@@ -228,6 +231,9 @@ def main(args=None):
                 print(e)
                 continue
 
+            if iter_num > 50:
+                break
+
         if parser.dataset == "coco":
 
             print("Evaluating dataset")
@@ -239,7 +245,11 @@ def main(args=None):
             print("Evaluating dataset")
 
             mAP = csv_eval.evaluate(dataset_val, retinanet)
-            writer.add_scalars("validation", {"mAP": mAP}, global_step)
+            print(mAP)
+            writer.add_scalars("validation", mAP, global_step)
+            writer.add_scalars(
+                "validation", {"mmAP": sum(mAP.values()) / len(mAP)}, global_step
+            )
 
         scheduler.step(np.mean(epoch_loss))
 
