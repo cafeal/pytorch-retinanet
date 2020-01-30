@@ -45,7 +45,6 @@ def main(args=None):
         "--csv_val",
         help="Path to file containing validation annotations (optional, see readme)",
     )
-
     parser.add_argument(
         "--depth",
         help="Resnet depth, must be one of 18, 34, 50, 101, 152",
@@ -53,7 +52,9 @@ def main(args=None):
         default=50,
     )
     parser.add_argument("--epochs", help="Number of epochs", type=int, default=100)
-
+    parser.add_argument(
+        "--workers", help="Number of workers of dataleader", type=int, default=4
+    )
     parser = parser.parse_args(args)
 
     writer = SummaryWriter("logs")
@@ -104,7 +105,10 @@ def main(args=None):
 
     sampler = AspectRatioBasedSampler(dataset_train, batch_size=2, drop_last=False)
     dataloader_train = DataLoader(
-        dataset_train, num_workers=3, collate_fn=collater, batch_sampler=sampler
+        dataset_train,
+        num_workers=parser.workers,
+        collate_fn=collater,
+        batch_sampler=sampler,
     )
 
     if dataset_val is not None:
@@ -170,7 +174,7 @@ def main(args=None):
 
         for iter_num, data in enumerate(dataloader_train):
             global_step = iter_num + epoch_num * len(dataloader_train)
-            
+
             try:
                 optimizer.zero_grad()
 
