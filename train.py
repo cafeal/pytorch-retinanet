@@ -231,9 +231,6 @@ def main(args=None):
                 print(e)
                 continue
 
-            if iter_num > 50:
-                break
-
         if parser.dataset == "coco":
 
             print("Evaluating dataset")
@@ -245,10 +242,11 @@ def main(args=None):
             print("Evaluating dataset")
 
             mAP = csv_eval.evaluate(dataset_val, retinanet)
-            print(mAP)
-            writer.add_scalars("validation", mAP, global_step)
+
+            valid_mAP = [x[0] for x in mAP.values() if x[1] > 0]
+            mmAP = sum(valid_mAP) / len(mAP)
             writer.add_scalars(
-                "validation", {"mmAP": sum(mAP.values()) / len(mAP)}, global_step
+                "validation", {"mmAP": mmAP}, global_step
             )
 
         scheduler.step(np.mean(epoch_loss))
